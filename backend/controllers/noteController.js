@@ -128,7 +128,9 @@ export const getNoteById = async (request,response)=>{
             }
         );
 
-        if(note.length===0){
+    
+
+        if(!note){
             return response.status(404).json({
                 message:'Note not found',
                 error:true,
@@ -143,6 +145,83 @@ export const getNoteById = async (request,response)=>{
         })
 
         
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal server error',
+            error:true,
+            success:false
+        })
+    }
+}
+
+//update note by id ( owner or editor can update)
+
+export const updateNoteById = async(request,response)=>{
+    try {
+        const {id} = request.params;
+        const {title,content,tags,isPinned} = request.body;
+        const userId = request.userId;
+
+        if(!id){
+            return response.status(400).json({
+                message:'Note id is required',
+                error:true,
+                success:false
+            })
+        }
+        if(!userId){
+            return response.status(401).json({
+                message:'Unauthorized, user not found',
+                error:true,
+                success:false
+            })
+        }
+
+        //find note by id and check if user is owner or editor
+        const note = await Note.findById(id);
+
+        if(!note || note.isDeleted){
+            return response.status(404).json({
+                message:'Note not found',
+                error:true,
+                success:false
+            })
+        }
+
+        let role = "viewer";
+        if(note.owner.toString() === userId){
+            role = "owner";
+        }
+        else{
+            const collaborator = note.collaborators.find(
+                (collab)=>collab.user.toString() === userId
+            );
+            if(collaborator){
+                role = collaborator.role;
+            }
+        }
+        if(role === "viewer"){
+            return response.status(403).json({
+                message:'Forbidden, you do not have permission to update this note',
+                error:true,
+                success:false
+            })
+        }
+
+        //update note
+        note.title = title??note.title;
+        note.content = content??note.content;
+        note.tags = tags??note.tags;
+        note.isPinned = isPinned??note.isPinned;
+
+        await note.save();
+        return response.status(200).json({
+            message:'Note updated successfully',
+            error:false,
+            success:true,
+            data:note   
+            })
     } catch (error) {
         console.log(error.message)
         return response.status(500).json({
