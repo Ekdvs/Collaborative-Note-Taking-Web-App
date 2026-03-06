@@ -51,7 +51,12 @@ const userSchema =  new mongoose.Schema(
         timestamps:true
     }
 )
-
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  delete obj.email_verification_token;  
+  return obj;
+};
 const User = mongoose.model("User",userSchema);
 
 export default User;
