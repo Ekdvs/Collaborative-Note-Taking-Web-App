@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import generatedAccesToken from "../utill/generatedAccesToken.js";
 import generateRefreshToken from "../utill/generatedRefreshToken.js";
+import { request } from "http";
 
 
 
@@ -122,6 +123,29 @@ export const loginUser = async(request,response)=>{
         })
 
 
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal sever error',
+            error:true,
+            success:false
+            
+        })
+    }
+}
+
+//get user data after login
+export const getUserData = async(request,response)=>{
+    try { 
+        //console.log("request.user",request.user)
+        const user = request.user;
+        return response.status(200).json({
+            message:'User data fetched successfully',
+            error:false,
+            success:true,
+            data:user
+        })
+        
     } catch (error) {
         console.log(error.message)
         return response.status(500).json({
