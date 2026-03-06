@@ -3,6 +3,7 @@ import express from 'express';
 import ConnectDB from './config/db.js';
 import cors from "cors";
 import userRouter from './routers/userRouter.js';
+import noteRouter from './routers/noteRouter.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(express.urlencoded({extended:true}))
 
 //add routes here
 app.use('/api/users',userRouter)
+app.use('/api/notes',noteRouter)
 
 app.get('/',(req,res)=>{
     res.send('Hello World!')
