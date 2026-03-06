@@ -1,5 +1,6 @@
 import { request, response } from "express";
 import Note from "../models/note.js";
+import User from "../models/user.js";
 
 
 
@@ -155,8 +156,7 @@ export const getNoteById = async (request,response)=>{
     }
 }
 
-//update note by id ( owner or editor can update)
-
+//update note by id ( owner  can update)
 export const updateNoteById = async(request,response)=>{
     try {
         const {id} = request.params;
@@ -190,12 +190,14 @@ export const updateNoteById = async(request,response)=>{
         }
 
         let role = "viewer";
-        if(note.owner.toString() === userId){
+        //console.log("owner id",note.owner.toString())
+        //console.log("user id",userId.toString())
+        if(note.owner.toString() === userId.toString()){
             role = "owner";
         }
         else{
             const collaborator = note.collaborators.find(
-                (collab)=>collab.user.toString() === userId
+                (collab)=>collab.user.toString() === userId.toString()
             );
             if(collaborator){
                 role = collaborator.role;
@@ -262,7 +264,7 @@ export const deleteNoteById = async(request,response)=>{
             })
         }
 
-        if(note.owner.toString() !== userId){
+        if(note.owner.toString() !== userId.toString()){
             return response.status(403).json({
                 message:'Forbidden, you do not have permission to delete this note',
                 error:true,
@@ -354,20 +356,35 @@ export const  addCollaborator = async(request,response)=>{
             })
         }
 
-        if(note.owner.toString() !== userId){
+        if(note.owner.toString() !== userId.toString()){
             return response.status(403).json({
                 message:'Forbidden, you do not have permission to add collaborator to this note',
                 error:true,
                 success:false
             })
         }
-        const collaborator = note.collaborators.findOne({email:email.toLowerCase()});
-        if(collaborator){
+        //find user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return response.status(404).json({
+                message: "User not found",
+                error: true,
+                success: false
+            });
+        }
+
+        // check if already collaborator
+        const collaborator = note.collaborators.find(
+            c => c.user.toString() === user._id.toString()
+        );
+
+        if (collaborator) {
             return response.status(400).json({
-                message:'User is already a collaborator',
-                error:true,
-                success:false
-            })
+                message: "User is already a collaborator",
+                error: true,
+                success: false
+            });
         }
 
         note.collaborators.push(
@@ -419,7 +436,7 @@ export const removeCollaborator =async(request,response)=>{
             });
         }
 
-        if (note.owner.toString() !== currentUserId) {
+        if (note.owner.toString() !== currentUserId.toString()) {
             return response.status(403).json({
                 message: 'Forbidden, you do not have permission to remove collaborator from this note',
                 error: true,
