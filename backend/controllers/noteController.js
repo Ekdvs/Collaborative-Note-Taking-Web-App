@@ -231,3 +231,234 @@ export const updateNoteById = async(request,response)=>{
         })
     }
 }
+
+//delete note by id (only owner can delete)
+export const deleteNoteById = async(request,response)=>{
+    try {
+        const {id} = request.params;
+        const userId = request.userId;
+        if(!id){
+            return response.status(400).json({
+                message:'Note id is required',
+                error:true,
+                success:false
+            })
+        }
+        if(!userId){
+            return response.status(401).json({
+                message:'Unauthorized, user not found',
+                error:true,
+                success:false
+            })
+        }
+
+        //find note by id and check if user is owner
+        const note = await Note.findById(id);
+        if(!note || note.isDeleted){
+            return response.status(404).json({
+                message:'Note not found',
+                error:true,
+                success:false
+            })
+        }
+
+        if(note.owner.toString() !== userId){
+            return response.status(403).json({
+                message:'Forbidden, you do not have permission to delete this note',
+                error:true,
+                success:false
+            })
+        }
+        
+        note.isDeleted = true;
+        await note.save();
+        return response.status(200).json({
+            message:'Note deleted successfully',
+            error:false,
+            success:true
+        })
+
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal server error',
+            error:true,
+            success:false
+        })
+    }
+}
+
+//full text search
+export const searchNotes = async(request,response)=>{
+    try {
+        const query = request.query.q;
+        const userId = request.userId;
+
+        if(!userId){
+            return response.status(401).json({
+                message:'Unauthorized, user not found',
+                error:true,
+                success:false
+            })
+        }
+
+        //find note
+        const notes = await Note.find(
+            {
+                $text:{$search:query},
+                isDeleted:false,
+                $or:[
+                    {owner:userId},
+                    {collaborators:{$elemMatch:{user:userId}}}
+                ]
+            }
+        )
+        return response.status(200).json({
+            message:'Notes found successfully',
+            error:false,
+            success:true,
+            data:notes
+        })
+
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal server error',
+            error:true,
+            success:false
+        })
+    }
+}
+
+//add collaborator to note (only owner can add)
+export const  addCollaborator = async(request,response)=>{
+    try {
+        const {id} = request.params; //note id
+        const userId = request.userId; //owner id
+        const {email,role} = request.body; //collaborator email and role
+
+        if(!id){
+            return response.status(400).json({
+                message:'Note id is required',
+                error:true,
+                success:false
+            })
+        }
+        
+        const note = await Note.findById(id);
+        if(!note || note.isDeleted){
+            return response.status(404).json({
+                message:'Note not found',
+                error:true,
+                success:false
+            })
+        }
+
+        if(note.owner.toString() !== userId){
+            return response.status(403).json({
+                message:'Forbidden, you do not have permission to add collaborator to this note',
+                error:true,
+                success:false
+            })
+        }
+        const collaborator = note.collaborators.findOne({email:email.toLowerCase()});
+        if(collaborator){
+            return response.status(400).json({
+                message:'User is already a collaborator',
+                error:true,
+                success:false
+            })
+        }
+
+        note.collaborators.push(
+            {
+                user:user._id,
+                role:role??"viewer"
+            }
+        );
+
+        await note.save();
+        return response.status(200).json({
+            message:'Collaborator added successfully',
+            error:false,
+            success:true,
+            data:note
+        })
+        
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal server error',
+            error:true,
+            success:false
+        })
+    }
+}
+
+//remove collaborator from note (only owner can remove)
+export const removeCollaborator =async(request,response)=>{
+    try {
+        const { id, userId } = request.params;
+        const currentUserId = request.userId;
+
+        if (!id) {
+            return response.status(400).json({
+                message: 'Note id is required',
+                error: true,
+                success: false
+            });
+        }
+        
+        //find note by id
+        const note = await Note.findById(id);
+        if (!note || note.isDeleted) {
+            return response.status(404).json({
+                message: 'Note not found',
+                error: true,
+                success: false
+            });
+        }
+
+        if (note.owner.toString() !== currentUserId) {
+            return response.status(403).json({
+                message: 'Forbidden, you do not have permission to remove collaborator from this note',
+                error: true,
+                success: false
+            });
+        }
+
+        //check collaborator exists
+        const collaboratorExists = note.collaborators.some(
+            (collab) => collab.user.toString() === userId
+        );
+
+        if (!collaboratorExists) {
+            return response.status(404).json({
+                message: 'Collaborator not found',
+                error: true,
+                success: false
+            });
+        }
+
+        //remove collaborator
+        note.collaborators = note.collaborators.filter(
+            (collab) => collab.user.toString() !== userId
+        );
+        await note.save();
+
+        return response.status(200).json({
+            message: 'Collaborator removed successfully',
+            error: false,
+            success: true,
+            data: note
+        });
+        
+    } catch (error) {
+        console.log(error.message)
+        return response.status(500).json({
+            message:'Internal server error',
+            error:true,
+            success:false
+        })
+    }
+}
