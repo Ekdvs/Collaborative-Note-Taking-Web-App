@@ -43,7 +43,7 @@ const userSchema =  new mongoose.Schema(
         },
         last_login_date:{
             type:Date,
-            default:''
+            default:null
         },
 
     },
