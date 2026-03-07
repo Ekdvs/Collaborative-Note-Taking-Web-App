@@ -14,6 +14,7 @@ interface Props {
 const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
   const [title, setTitle] = useState(note.title);
   const [tags, setTags] = useState<string[]>(note.tags || []);
+  const [tagsInput, setTagsInput] = useState<string>((note.tags || []).join(", "));
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -23,13 +24,19 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
   // Update note
   const updateNote = async () => {
     try {
+      // Convert tags input to array before saving
+      const tagArray = tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
+
       const res = await Axios({
         method: SummaryApi.updateNote.method,
         url: SummaryApi.updateNote.url(note._id),
         data: {
           title,
           content: editor?.getHTML() || "",
-          tags,
+          tags: tagArray,
         },
       });
 
@@ -37,23 +44,34 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
         toast.success(res.data.message || "Note updated");
         refresh();
         close();
-      }
-      else{
-         toast.error(res.data.message || "Update failed");
+      } else {
+        toast.error(res.data.message || "Update failed");
       }
     } catch {
       toast.error("Update failed");
     }
   };
 
-  // Convert comma-separated input into tags array
+  // Handle typing in tag input
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const tagArray = value
+    setTagsInput(e.target.value);
+  };
+
+  // Convert tags input to array on blur
+  const handleTagsBlur = () => {
+    const tagArray = tagsInput
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t !== "");
     setTags(tagArray);
+  };
+
+  // Optional: press Enter to convert tags
+  const handleTagsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleTagsBlur();
+    }
   };
 
   return (
@@ -72,8 +90,10 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
         {/* Tags */}
         <input
           type="text"
-          value={tags.join(", ")}
+          value={tagsInput}
           onChange={handleTagsChange}
+          onBlur={handleTagsBlur}
+          onKeyDown={handleTagsKeyDown}
           className="border w-full p-2 mb-4 rounded"
           placeholder="Add tags separated by comma"
         />

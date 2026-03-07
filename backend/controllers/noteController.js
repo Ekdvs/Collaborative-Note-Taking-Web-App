@@ -291,46 +291,58 @@ export const deleteNoteById = async(request,response)=>{
 }
 
 //full text search
-export const searchNotes = async(request,response)=>{
-    try {
-        const query = request.query.q;
-        const userId = request.userId;
+export const searchNotes = async (request, response) => {
+  try {
+    const query = request.query.q?.trim();
+    const userId = request.userId;
 
-        if(!userId){
-            return response.status(401).json({
-                message:'Unauthorized, user not found',
-                error:true,
-                success:false
-            })
-        }
-
-        //find note
-        const notes = await Note.find(
-            {
-                $text:{$search:query},
-                isDeleted:false,
-                $or:[
-                    {owner:userId},
-                    {collaborators:{$elemMatch:{user:userId}}}
-                ]
-            }
-        )
-        return response.status(200).json({
-            message:'Notes found successfully',
-            error:false,
-            success:true,
-            data:notes
-        })
-
-    } catch (error) {
-        console.log(error.message)
-        return response.status(500).json({
-            message:'Internal server error',
-            error:true,
-            success:false
-        })
+    if (!userId) {
+      return response.status(401).json({
+        message: "Unauthorized, user not found",
+        error: true,
+        success: false,
+      });
     }
-}
+
+    if (!query) {
+      return response.status(400).json({
+        message: "Search query cannot be empty",
+        error: true,
+        success: false,
+      });
+    }
+
+    // Make sure the text index exists in your DB:
+    // db.notes.createIndex({ title: "text", content: "text", tags: "text" })
+
+    const notes = await Note.find({
+  $and: [
+    { $text: { $search: query } },
+    { isDeleted: false },
+    {
+      $or: [
+        { owner: userId },
+        { collaborators: { $elemMatch: { user: userId } } },
+      ],
+    },
+  ],
+});
+
+    return response.status(200).json({
+      message: "Notes found successfully",
+      error: false,
+      success: true,
+      data: notes,
+    });
+  } catch (error) {
+    console.error("SearchNotes Error:", error);
+    return response.status(500).json({
+      message: "Internal server error",
+      error: true,
+      success: false,
+    });
+  }
+};
 
 //add collaborator to note (only owner can add)
 export const  addCollaborator = async(request,response)=>{
