@@ -85,16 +85,12 @@ const Register = () => {
 
   return (
 
-    <div className="w-full h-screen bg-[url('/bglogin.jpg')] bg-cover bg-center flex items-center justify-center mt-[30px]">
+    <div className="w-full h-screen bg-[url('/bglogin.jpg')] bg-cover bg-center flex items-center justify-center ">
       
       {/* Left Section */}
       <div className="hidden lg:flex w-[50%] h-full flex-col items-center justify-center gap-10 bg-black/50 p-10">
 
-        <img
-          src="/logo.png"
-          alt="logo"
-          className="w-[180px] h-[180px] opacity-90 drop-shadow-lg"
-        />
+       
 
         <h1 className="text-5xl font-bold text-[#FFD700]">
           Create Your Account

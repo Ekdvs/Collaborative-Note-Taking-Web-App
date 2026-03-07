@@ -79,11 +79,7 @@ const Login = () => {
       {/* Left Section */}
       <div className="hidden lg:flex w-[50%] h-full flex-col items-center justify-center gap-10 bg-black/50 p-10">
 
-        <img
-          src="/logo.png"
-          alt="logo"
-          className="w-[180px] h-[180px] object-contain opacity-90 drop-shadow-lg"
-        />
+        
 
         <h1 className="text-5xl font-bold text-[#FFD700] text-center drop-shadow-lg">
           Your Gateway to Smarter Notes.
