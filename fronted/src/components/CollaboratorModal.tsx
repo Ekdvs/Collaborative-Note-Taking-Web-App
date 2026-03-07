@@ -17,14 +17,19 @@ const CollaboratorModal = ({note,close,refresh}:Props) => {
 
   try{
 
-   await Axios({
+  const res= await Axios({
     url: SummaryApi.addCollaborator.url(note._id),
     method: SummaryApi.addCollaborator.method,
     data:{email,role:"editor"}
    })
 
-   toast.success("Collaborator added")
-   refresh()
+   if (res.data.success) {
+     toast.success(res.data.message || "Collaborator added");
+     refresh();
+     close();
+   } else {
+     toast.error(res.data.message || "Failed to add collaborator");
+   }
 
   }catch{
    toast.error("Failed")

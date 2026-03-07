@@ -34,9 +34,12 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
       });
 
       if (res.data.success) {
-        toast.success("Note updated");
+        toast.success(res.data.message || "Note updated");
         refresh();
         close();
+      }
+      else{
+         toast.error(res.data.message || "Update failed");
       }
     } catch {
       toast.error("Update failed");
