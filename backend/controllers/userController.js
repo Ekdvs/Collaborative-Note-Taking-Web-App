@@ -156,3 +156,25 @@ export const getUserData = async(request,response)=>{
         })
     }
 }
+
+//logout
+export const logoutUser = async(request,response)=>{
+    try {
+        const user = request.user;
+        user.refresh_token = null;
+        await user.save();
+        return response.status(200).json({
+            message:'User logged out successfully',
+            error:false,
+            success:true
+        })
+
+    } catch (error) {
+        return response.status(500).json({
+            message:'Internal sever error',
+            error:true,
+            success:false
+    })
+    }
+}
+        
