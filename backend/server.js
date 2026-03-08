@@ -4,6 +4,7 @@ import ConnectDB from './config/db.js';
 import cors from "cors";
 import userRouter from './routers/userRouter.js';
 import noteRouter from './routers/noteRouter.js';
+import Note from './models/note.js';
 
 dotenv.config();
 
@@ -22,6 +23,8 @@ app.use(
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
+
+
 //add routes here
 app.use('/api/users',userRouter)
 app.use('/api/notes',noteRouter)
@@ -32,7 +35,11 @@ app.get('/',(req,res)=>{
 
 const PORT = process.env.PORT || 8080;
 
-ConnectDB().then(()=>{
+ConnectDB().then(async ()=>{
+    await Note.createIndexes();
+
+    console.log("Indexes created successfully");
+
     app.listen(PORT,()=>{
         console.log(`Server is running on port ${PORT}`);
     })}).catch((error)=>{

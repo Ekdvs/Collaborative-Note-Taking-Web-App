@@ -1,107 +1,136 @@
-import { useState } from "react"
+
+import { useState, useEffect } from "react"
 import { Axios } from "../utils/Axios"
 import SummaryApi from "../api/SummaryApi"
 import toast from "react-hot-toast"
 
-interface Props{
- note:any
- close:()=>void
- refresh:()=>void
+interface Props {
+  note: any
+  close: () => void
 }
 
-const CollaboratorModal = ({note,close,refresh}:Props) => {
+const CollaboratorModal = ({ note, close }: Props) => {
 
- const [email,setEmail] = useState("")
+  const [email, setEmail] = useState("")
+  const [collaborators, setCollaborators] = useState<any[]>([])
 
- const addCollaborator = async()=>{
+  useEffect(() => {
+    if (note?.collaborators) {
+      setCollaborators(note.collaborators)
+    }
+  }, [note])
 
-  try{
+  const addCollaborator = async () => {
 
-  const res= await Axios({
-    url: SummaryApi.addCollaborator.url(note._id),
-    method: SummaryApi.addCollaborator.method,
-    data:{email,role:"editor"}
-   })
+    try {
 
-   if (res.data.success) {
-     toast.success(res.data.message || "Collaborator added");
-     refresh();
-     close();
-   } else {
-     toast.error(res.data.message || "Failed to add collaborator");
-   }
+      const res = await Axios({
+        url: SummaryApi.addCollaborator.url(note._id),
+        method: SummaryApi.addCollaborator.method,
+        data: { email, role: "editor" }
+      })
 
-  }catch{
-   toast.error("Failed")
+      if (res.data.success) {
+
+        toast.success(res.data.message || "Collaborator added")
+
+        setCollaborators((prev) => [
+          ...prev,
+          { user: email, role: "editor" }
+        ])
+
+        setEmail("")
+
+      } else {
+        toast.error(res.data.message || "Failed to add collaborator")
+      }
+
+    } catch {
+      toast.error("Failed")
+    }
+
   }
 
- }
+  const removeCollaborator = async (userId: string) => {
 
- const removeCollaborator = async(userId:string)=>{
+    try {
 
-  await Axios({
-   url: SummaryApi.removeCollaborator.url(note._id,userId),
-   method: SummaryApi.removeCollaborator.method
-  })
+      const res = await Axios({
+        url: SummaryApi.removeCollaborator.url(note._id, userId),
+        method: SummaryApi.removeCollaborator.method
+      })
 
-  refresh()
+      if (res.data.success) {
 
- }
+        toast.success("Removed")
 
- return(
+        setCollaborators((prev) =>
+          prev.filter((c) => c.user !== userId)
+        )
 
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+      }
 
-   <div className="bg-white p-6 rounded w-[400px]">
+    } catch {
+      toast.error("Remove failed")
+    }
 
-    <h2 className="text-lg font-bold mb-4">Collaborators</h2>
+  }
 
-    <div className="flex gap-2 mb-4">
+  return (
 
-     <input
-      placeholder="User email"
-      value={email}
-      onChange={(e)=>setEmail(e.target.value)}
-      className="border p-2 flex-1"
-     />
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
 
-     <button
-      onClick={addCollaborator}
-      className="bg-blue-600 text-white px-3 py-2 rounded"
-     >
-      Add
-     </button>
+      <div className="bg-white p-6 rounded w-[400px]">
+
+        <h2 className="text-lg font-bold mb-4">Collaborators</h2>
+
+        <div className="flex gap-2 mb-4">
+
+          <input
+            placeholder="User email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border p-2 flex-1"
+          />
+
+          <button
+            onClick={addCollaborator}
+            className="bg-blue-600 text-white px-3 py-2 rounded"
+          >
+            Add
+          </button>
+
+        </div>
+
+        {collaborators.map((c: any) => (
+          <div key={c.user} className="flex justify-between mb-2">
+
+            <span>{c.user}</span>
+
+            <button
+              onClick={() => removeCollaborator(c.user)}
+              className="text-red-500"
+            >
+              Remove
+            </button>
+
+          </div>
+        ))}
+
+        <button
+          onClick={close}
+          className="mt-4 bg-gray-300 px-4 py-2 rounded"
+        >
+          Close
+        </button>
+
+      </div>
 
     </div>
 
-    {note.collaborators?.map((c:any)=>(
-     <div key={c.user} className="flex justify-between mb-2">
-
-      <span>{c.user}</span>
-
-      <button
-       onClick={()=>removeCollaborator(c.user)}
-       className="text-red-500"
-      >
-       Remove
-      </button>
-
-     </div>
-    ))}
-
-    <button
-     onClick={close}
-     className="mt-4 bg-gray-300 px-4 py-2 rounded"
-    >
-     Close
-    </button>
-
-   </div>
-
-  </div>
-
- )
+  )
 
 }
 
 export default CollaboratorModal
+

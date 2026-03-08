@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { Axios } from "../utils/Axios";
 import SummaryApi from "../api/SummaryApi";
@@ -8,23 +8,34 @@ import StarterKit from "@tiptap/starter-kit";
 interface Props {
   note: any;
   close: () => void;
-  refresh: () => void;
 }
 
-const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
-  const [title, setTitle] = useState(note.title);
-  const [tags, setTags] = useState<string[]>(note.tags || []);
-  const [tagsInput, setTagsInput] = useState<string>((note.tags || []).join(", "));
+const EditNoteModal: React.FC<Props> = ({ note, close }) => {
+  const [title, setTitle] = useState<string>(note?.title || "");
+  const [tags, setTags] = useState<string[]>(note?.tags || []);
+  const [tagsInput, setTagsInput] = useState<string>(
+    (note?.tags || []).join(", ")
+  );
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: note.content || "",
+    content: note?.content || "",
   });
+
+  // Update editor + state when note changes
+  useEffect(() => {
+    setTitle(note?.title || "");
+    setTags(note?.tags || []);
+    setTagsInput((note?.tags || []).join(", "));
+
+    if (editor && note?.content) {
+      editor.commands.setContent(note.content);
+    }
+  }, [note, editor]);
 
   // Update note
   const updateNote = async () => {
     try {
-      // Convert tags input to array before saving
       const tagArray = tagsInput
         .split(",")
         .map((t) => t.trim())
@@ -42,31 +53,30 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
 
       if (res.data.success) {
         toast.success(res.data.message || "Note updated");
-        refresh();
         close();
       } else {
         toast.error(res.data.message || "Update failed");
       }
-    } catch {
+    } catch (error) {
       toast.error("Update failed");
     }
   };
 
-  // Handle typing in tag input
+  // Handle typing tags
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagsInput(e.target.value);
   };
 
-  // Convert tags input to array on blur
+  // Convert tags to array
   const handleTagsBlur = () => {
     const tagArray = tagsInput
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t !== "");
+
     setTags(tagArray);
   };
 
-  // Optional: press Enter to convert tags
   const handleTagsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -99,7 +109,7 @@ const EditNoteModal: React.FC<Props> = ({ note, close, refresh }) => {
         />
 
         {/* Content */}
-        <div className="border rounded mb-4">
+        <div className="border rounded p-2 mb-4 min-h-[150px]">
           {editor && <EditorContent editor={editor} />}
         </div>
 
